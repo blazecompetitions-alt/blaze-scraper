@@ -120,11 +120,6 @@ scope = [
     "https://www.googleapis.com/auth/drive"
 ]
 
-creds = ServiceAccountCredentials.from_json_keyfile_name(
-    "/Users/Ryan-AnnFinance/blaze/creds.json",
-    scope
-)
-
 client = gspread.authorize(creds)
 
 sheet = client.open("Blaze Tracker").worksheet("Raw Data")
