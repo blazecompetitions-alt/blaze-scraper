@@ -1,3 +1,5 @@
+print("VERSION 3 LIVE")
+
 import requests
 import pandas as pd
 import gspread
