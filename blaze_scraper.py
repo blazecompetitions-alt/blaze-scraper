@@ -4,13 +4,9 @@ import gspread
 import os
 import json
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import datetime
+from datetime import datetime, timedelta
 
-print("🚀 VERSION 6 LIVE")
-
-# ======================
-# FETCH DATA
-# ======================
+print("🚀 VERSION 7 LIVE")
 
 url = "https://blazecompetitions.co.uk/api/competitions?page=1&limit=100"
 response = requests.get(url)
@@ -18,41 +14,37 @@ data = response.json()
 
 rows = []
 
-# ======================
-# PARSE DATA
-# ======================
-
 for comp in data.get("data", []):
     try:
-        # BASIC INFO
         title = comp.get("title", "")
-        price = comp.get("price", "")
 
-        # 🔥 CORRECT FIELDS (confirmed working structure)
+        # ✅ CORRECT PRICE FIELD
+        price = comp.get("ticketPrice", "")
+
+        # ✅ USE MATCHING VALUES
+        max_tickets = comp.get("maxTickets", 0)
         sold = comp.get("ticketsSold", 0)
 
-        max_tickets = (
-            comp.get("maxTickets") or
-            comp.get("max_entries") or
-            comp.get("maxEntries") or
-            0
-        )
+        # FIX: prevent nonsense values
+        if sold > max_tickets:
+            sold = max_tickets
 
-        # % SOLD
+        # ✅ % SOLD WITH %
         try:
-            percent_sold = round((int(sold) / int(max_tickets)) * 100, 1) if int(max_tickets) > 0 else ""
+            percent_sold = f"{round((sold / max_tickets) * 100, 1)}%" if max_tickets else ""
         except:
             percent_sold = ""
 
-        # DATE (SAFE + CLEAN)
+        # ✅ FIX TIMEZONE (UTC → UK)
         end_date_raw = comp.get("endDate", "")
         try:
             dt = datetime.fromisoformat(end_date_raw.replace("Z", ""))
+            dt = dt + timedelta(hours=1)  # 🔥 UK FIX
             end_date = dt.strftime("%d/%m/%Y %H:%M")
         except:
             end_date = end_date_raw
 
-        # URL
+        # ✅ URL
         slug = comp.get("slug", "")
         url_link = f"https://blazecompetitions.co.uk/competition/{slug}" if slug else ""
 
@@ -67,21 +59,15 @@ for comp in data.get("data", []):
         })
 
     except Exception as e:
-        print("❌ Error parsing row:", e)
-
-# ======================
-# DATAFRAME CLEAN
-# ======================
+        print("Error parsing:", e)
 
 df = pd.DataFrame(rows)
 
-df = df.fillna("")        # remove NaN
-df = df.astype(str)       # force strings (prevents JSON errors)
+# CLEAN DATA
+df = df.fillna("")
+df = df.astype(str)
 
-# ======================
 # GOOGLE SHEETS
-# ======================
-
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
@@ -93,8 +79,7 @@ creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 sheet = client.open("Blaze Tracker").worksheet("Raw Data")
 
-# CLEAR + UPDATE
 sheet.clear()
 sheet.update([df.columns.values.tolist()] + df.values.tolist())
 
-print("✅ Sheet updated successfully")
+print("✅ Sheet updated")
