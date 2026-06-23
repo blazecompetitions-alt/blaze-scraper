@@ -38,7 +38,7 @@ rows = []
 # PROCESS DATA
 # ========================
 
-for comp in data.get("competitions", []):
+for comp in data:
 
     try:
         title = comp.get("title", "")
