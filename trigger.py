@@ -6,11 +6,6 @@ app = Flask(__name__)
 @app.route("/run")
 def run_script():
     try:
-        import blaze_scraper
-
-@app.route("/run")
-def run_script():
-    try:
         blaze_scraper.main()   # 👈 call function directly
         return "✅ Sheet updated successfully"
     except Exception as e:
