@@ -28,14 +28,13 @@ sheet = client.open("Blaze Tracker").worksheet("Raw Data")
 # ========================
 
 url = "https://blazecompetitions.co.uk/api/competitions?page=1&limit=100"
-
 response = requests.get(url)
 data = response.json()
 
 print("RAW TYPE:", type(data))
 
 # ========================
-# HANDLE API STRUCTURE SAFELY
+# HANDLE API STRUCTURE
 # ========================
 
 comps = []
@@ -50,11 +49,13 @@ elif isinstance(data, dict):
     elif "data" in data:
         if isinstance(data["data"], list):
             comps = data["data"]
-
         elif isinstance(data["data"], dict):
             comps = data["data"].get("competitions", [])
 
 print("TOTAL COMPS:", len(comps))
+
+# ✅ THIS WAS MISSING BEFORE
+rows = []
 
 # ========================
 # PROCESS DATA
@@ -64,7 +65,7 @@ for comp in comps:
     try:
         title = comp.get("title", "")
 
-        # END DATE (no rounding)
+        # DATE
         end_raw = comp.get("endDate")
         if end_raw:
             dt = datetime.fromisoformat(end_raw.replace("Z", "+00:00"))
@@ -72,7 +73,7 @@ for comp in comps:
         else:
             end_date = ""
 
-        # PRICE (handles all cases)
+        # PRICE
         raw_price = (
             comp.get("ticketPrice")
             or comp.get("price")
@@ -129,7 +130,7 @@ df = pd.DataFrame(rows, columns=[
 df = df.fillna("")
 
 # ========================
-# SAFE UPLOAD (WON'T WIPE SHEET)
+# SAFE UPDATE
 # ========================
 
 if len(rows) > 0:
