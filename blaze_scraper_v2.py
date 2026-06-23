@@ -1,74 +1,75 @@
-print("VERSION 3 LIVE")
-
 import requests
 import pandas as pd
 import gspread
-import json
 import os
+import json
 from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime
 
-def main():
-    print("🚀 NEW CLEAN VERSION RUNNING")
+print("🚀 VERSION 4 LIVE")
 
-    url = "https://blazecompetitions.co.uk/api/competitions?page=1&limit=100"
+# =====================
+# FETCH DATA
+# =====================
 
-    response = requests.get(url)
+url = "https://blazecompetitions.co.uk/api/competitions?page=1&limit=100"
+response = requests.get(url)
+data = response.json()
 
-    if response.status_code != 200:
-        raise Exception(f"API failed: {response.status_code}")
+rows = []
 
+for comp in data.get("data", []):
     try:
-        data = response.json()
-    except Exception as e:
-        raise Exception(f"JSON error: {e}")
+        title = comp.get("title", "")
+        price = comp.get("price", "")
+        max_tickets = comp.get("maxTickets", "")
 
-    competitions = data.get("data", [])
-
-    if not isinstance(competitions, list):
-        raise Exception("Unexpected API format")
-
-    rows = []
-
-    for comp in competitions:
-        if not isinstance(comp, dict):
-            continue
+        # Fix date
+        end_date_raw = comp.get("endDate")
+        if end_date_raw:
+            try:
+                end_date = datetime.fromisoformat(end_date_raw.replace("Z", "")).strftime("%d/%m/%Y %H:%M")
+            except:
+                end_date = ""
+        else:
+            end_date = ""
 
         rows.append({
-            "id": str(comp.get("id", "")),
-            "title": str(comp.get("title", "")),
-            "price": str(comp.get("price", "")),
-            "max_entries": str(comp.get("maxEntries", "")),
-            "sold": str(comp.get("sold", "")),
-            "status": str(comp.get("status", "")),
-            "draw_date": str(comp.get("drawDate", "")),
+            "Title": title,
+            "End Date": end_date,
+            "Price": price,
+            "Max Tickets": max_tickets
         })
 
-    df = pd.DataFrame(rows)
+    except Exception as e:
+        print("Error parsing row:", e)
 
-    # ✅ Completely safe cleaning
-    df = df.fillna("").astype(str)
+df = pd.DataFrame(rows)
 
-    # ------------------------
-    # GOOGLE SHEETS
-    # ------------------------
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive"
-    ]
+# =====================
+# CLEAN DATA (CRITICAL)
+# =====================
 
-    creds_dict = json.loads(os.environ["GOOGLE_CREDS"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-    client = gspread.authorize(creds)
+df = df.fillna("")  # REMOVE NaN
+df = df.astype(str)  # FORCE STRINGS
 
-    sheet = client.open("Blaze Tracker").worksheet("Raw Data")
+# =====================
+# GOOGLE SHEETS
+# =====================
 
-    # ⚠️ SAFE UPDATE (no list manipulation at all)
-    values = [df.columns.tolist()] + df.values.tolist()
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
 
-    sheet.clear()
-    sheet.update(values)
+creds_dict = json.loads(os.environ["GOOGLE_CREDS"])
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 
-    print("✅ Google Sheet updated successfully")
+client = gspread.authorize(creds)
+sheet = client.open("Blaze Tracker").worksheet("Raw Data")
 
-if __name__ == "__main__":
-    main()
+sheet.clear()
+
+sheet.update([df.columns.values.tolist()] + df.values.tolist())
+
+print("✅ Google Sheet updated")
