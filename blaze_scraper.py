@@ -19,7 +19,12 @@ for comp in data.get("data", []):
         title = comp.get("title", "")
 
         # ✅ CORRECT PRICE FIELD
-        price = comp.get("ticketPrice", "")
+        raw_price = comp.get("ticketPrice") or comp.get("price")
+
+try:
+    price = f"£{float(raw_price):.2f}" if raw_price else ""
+except:
+    price = ""
 
         # ✅ USE MATCHING VALUES
         max_tickets = comp.get("maxTickets", 0)
