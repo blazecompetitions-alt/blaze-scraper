@@ -32,7 +32,7 @@ def main():
     # ========================
     sheet = client.open("Blaze Tracker").worksheet("Raw Data")
 
-    sheet.clear()
+    df = df.fillna("")
     sheet.update([df.columns.values.tolist()] + df.values.tolist())
 
     print("✅ Google Sheet updated")
