@@ -6,7 +6,7 @@ import json
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
-print("🚀 Cron scraper running...")
+print("🚀 VERSION 5 LIVE")
 
 url = "https://blazecompetitions.co.uk/api/competitions?page=1&limit=100"
 response = requests.get(url)
@@ -17,23 +17,54 @@ rows = []
 for comp in data.get("data", []):
     try:
         title = comp.get("title", "")
-        price = comp.get("price", "")
-        max_tickets = comp.get("maxTickets", "")
 
+        # PRICE
+        price = comp.get("price", "")
+
+        # MAX TICKETS (try multiple keys)
+        max_tickets = (
+            comp.get("maxTickets") or
+            comp.get("max_tickets") or
+            comp.get("maxEntries") or
+            ""
+        )
+
+        # SOLD
+        sold = (
+            comp.get("ticketsSold") or
+            comp.get("soldTickets") or
+            0
+        )
+
+        # % SOLD
+        try:
+            percent_sold = round((int(sold) / int(max_tickets)) * 100, 1) if max_tickets else ""
+        except:
+            percent_sold = ""
+
+        # DATE (FIXED PROPERLY)
         end_date_raw = comp.get("endDate")
         if end_date_raw:
             try:
-                end_date = datetime.fromisoformat(end_date_raw.replace("Z", "")).strftime("%d/%m/%Y %H:%M")
+                dt = datetime.fromisoformat(end_date_raw.replace("Z", ""))
+                end_date = dt.strftime("%d/%m/%Y %H:%M")
             except:
-                end_date = ""
+                end_date = end_date_raw
         else:
             end_date = ""
+
+        # URL
+        slug = comp.get("slug", "")
+        url_link = f"https://blazecompetitions.co.uk/competition/{slug}" if slug else ""
 
         rows.append({
             "Title": title,
             "End Date": end_date,
-            "Price": price,
-            "Max Tickets": max_tickets
+            "Price (£)": price,
+            "Max Tickets": max_tickets,
+            "Sold": sold,
+            "% Sold": percent_sold,
+            "URL": url_link
         })
 
     except Exception as e:
