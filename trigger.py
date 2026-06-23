@@ -3,12 +3,14 @@ import subprocess
 
 app = Flask(__name__)
 
-@app.route('/run')
+@app.route("/run")
 def run_script():
-    subprocess.run([
-        "/Library/Frameworks/Python.framework/Versions/3.14/bin/python3",
-        "/Users/Ryan-AnnFinance/blaze_scraper.py"
-    ])
-    return "✅ Blaze scraper triggered!"
+    try:
+        subprocess.run(["python3", "blaze_scraper.py"], check=True)
+        return "✅ Sheet updated successfully"
+    except Exception as e:
+        return f"❌ Error: {e}"
 
-app.run(host='0.0.0.0', port=5050)
+@app.route("/")
+def home():
+    return "Blaze scraper is running"
