@@ -38,16 +38,21 @@ print("RAW TYPE:", type(data))
 # HANDLE API STRUCTURE SAFELY
 # ========================
 
+comps = []
+
 if isinstance(data, list):
     comps = data
-elif isinstance(data, dict) and "competitions" in data:
-    comps = data["competitions"]
-else:
-    comps = []
+
+elif isinstance(data, dict):
+    # try common structures
+    comps = (
+        data.get("competitions")
+        or data.get("data", {}).get("competitions")
+        or data.get("data")
+        or []
+    )
 
 print("TOTAL COMPS:", len(comps))
-
-rows = []
 
 # ========================
 # PROCESS DATA
