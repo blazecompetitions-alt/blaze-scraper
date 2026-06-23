@@ -44,13 +44,15 @@ if isinstance(data, list):
     comps = data
 
 elif isinstance(data, dict):
-    # try common structures
-    comps = (
-        data.get("competitions")
-        or data.get("data", {}).get("competitions")
-        or data.get("data")
-        or []
-    )
+    if "competitions" in data:
+        comps = data["competitions"]
+
+    elif "data" in data:
+        if isinstance(data["data"], list):
+            comps = data["data"]
+
+        elif isinstance(data["data"], dict):
+            comps = data["data"].get("competitions", [])
 
 print("TOTAL COMPS:", len(comps))
 
