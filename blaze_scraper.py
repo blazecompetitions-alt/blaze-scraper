@@ -73,18 +73,34 @@ for comp in comps:
         else:
             end_date = ""
 
-        # PRICE
-        raw_price = (
-            comp.get("ticketPrice")
-            or comp.get("price")
-            or comp.get("ticket", {}).get("price")
-        )
+        # ========================
+# PRICE (FULL SAFE VERSION)
+# ========================
 
-        try:
-            price = f"£{float(raw_price):.2f}" if raw_price else ""
-        except:
-            price = ""
+price = ""
 
+try:
+    if comp.get("ticketPrice"):
+        raw_price = comp.get("ticketPrice")
+
+    elif comp.get("price"):
+        raw_price = comp.get("price")
+
+    elif comp.get("ticket", {}).get("price"):
+        raw_price = comp.get("ticket", {}).get("price")
+
+    elif comp.get("prices") and isinstance(comp["prices"], list):
+        raw_price = comp["prices"][0].get("price")
+
+    else:
+        raw_price = None
+
+    if raw_price:
+        price = f"£{float(raw_price):.2f}"
+
+except Exception as e:
+    print("❌ Price error:", e)
+    
         # TICKETS
         tickets_sold = comp.get("ticketsSold", 0)
         max_tickets = comp.get("maxTickets", 0)
