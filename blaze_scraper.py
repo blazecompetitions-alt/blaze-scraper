@@ -6,11 +6,7 @@ import json
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
-print("🚀 VERSION 4 LIVE")
-
-# =====================
-# FETCH DATA
-# =====================
+print("🚀 Cron scraper running...")
 
 url = "https://blazecompetitions.co.uk/api/competitions?page=1&limit=100"
 response = requests.get(url)
@@ -24,7 +20,6 @@ for comp in data.get("data", []):
         price = comp.get("price", "")
         max_tickets = comp.get("maxTickets", "")
 
-        # Fix date
         end_date_raw = comp.get("endDate")
         if end_date_raw:
             try:
@@ -42,21 +37,15 @@ for comp in data.get("data", []):
         })
 
     except Exception as e:
-        print("Error parsing row:", e)
+        print("Error parsing:", e)
 
 df = pd.DataFrame(rows)
 
-# =====================
-# CLEAN DATA (CRITICAL)
-# =====================
+# CLEAN DATA
+df = df.fillna("")
+df = df.astype(str)
 
-df = df.fillna("")  # REMOVE NaN
-df = df.astype(str)  # FORCE STRINGS
-
-# =====================
 # GOOGLE SHEETS
-# =====================
-
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
@@ -69,7 +58,6 @@ client = gspread.authorize(creds)
 sheet = client.open("Blaze Tracker").worksheet("Raw Data")
 
 sheet.clear()
-
 sheet.update([df.columns.values.tolist()] + df.values.tolist())
 
-print("✅ Google Sheet updated")
+print("✅ Sheet updated")
