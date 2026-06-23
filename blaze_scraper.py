@@ -32,18 +32,32 @@ url = "https://blazecompetitions.co.uk/api/competitions?page=1&limit=100"
 response = requests.get(url)
 data = response.json()
 
+print("RAW TYPE:", type(data))
+
+# ========================
+# HANDLE API STRUCTURE SAFELY
+# ========================
+
+if isinstance(data, list):
+    comps = data
+elif isinstance(data, dict) and "competitions" in data:
+    comps = data["competitions"]
+else:
+    comps = []
+
+print("TOTAL COMPS:", len(comps))
+
 rows = []
 
 # ========================
 # PROCESS DATA
 # ========================
 
-for comp in data:
-
+for comp in comps:
     try:
         title = comp.get("title", "")
 
-        # END DATE (keep exact time)
+        # END DATE (no rounding)
         end_raw = comp.get("endDate")
         if end_raw:
             dt = datetime.fromisoformat(end_raw.replace("Z", "+00:00"))
@@ -51,7 +65,7 @@ for comp in data:
         else:
             end_date = ""
 
-        # PRICE (fixed)
+        # PRICE (handles all cases)
         raw_price = (
             comp.get("ticketPrice")
             or comp.get("price")
@@ -63,6 +77,7 @@ for comp in data:
         except:
             price = ""
 
+        # TICKETS
         tickets_sold = comp.get("ticketsSold", 0)
         max_tickets = comp.get("maxTickets", 0)
 
@@ -91,7 +106,7 @@ for comp in data:
         print("❌ Error processing comp:", e)
 
 # ========================
-# UPLOAD TO SHEET
+# DATAFRAME
 # ========================
 
 df = pd.DataFrame(rows, columns=[
@@ -104,10 +119,15 @@ df = pd.DataFrame(rows, columns=[
     "URLs"
 ])
 
-# Clean NaN (important)
 df = df.fillna("")
 
-sheet.clear()
-sheet.update([df.columns.values.tolist()] + df.values.tolist())
+# ========================
+# SAFE UPLOAD (WON'T WIPE SHEET)
+# ========================
 
-print("✅ Google Sheet updated")
+if len(rows) > 0:
+    sheet.clear()
+    sheet.update([df.columns.values.tolist()] + df.values.tolist())
+    print("✅ Google Sheet updated")
+else:
+    print("❌ No data returned — sheet NOT cleared")
